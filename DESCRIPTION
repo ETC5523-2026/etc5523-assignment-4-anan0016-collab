@@ -1,11 +1,15 @@
 Package: melbfoot
-Title: What the Package Does (One Line, Title Case)
+Title: Find High-Traffic Locations for a Melbourne CBD Pop-Up Store
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+   person("Anali", "Nanayakkara", , "anan0016@student.monash.edu",
+           role = c("aut", "cre"))
+Description: Provides hourly pedestrian counts from the City of Melbourne
+    Pedestrian Counting System, summarised by sensor, weekday and hour, along
+    with sensor locations. Includes a function that ranks locations by foot
+    traffic within a chosen trading window and a Shiny app that helps someone
+    planning a clothing pop-up compare candidate locations.
+License: MIT + file LICENSE
 Config/roxygen2/version: 8.1.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
