@@ -1,3 +1,5 @@
 ^melbfoot\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^scratch\.R$
+^data-raw$
