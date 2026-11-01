@@ -37,6 +37,11 @@ ui <- page_sidebar(
     card_header("Top 10 spots for your trading hours"),
     textOutput("finding"),
     plotOutput("rank_plot")
+  ),
+  card(
+    card_header("When does it get busy?"),
+    p("The shaded band is your opening hours. You want the line to peak inside it."),
+    plotOutput("hour_plot")
   )
 )
 
@@ -79,6 +84,21 @@ server <- function(input, output, session) {
       ggplot(aes(x = avg_per_hour,
                  y = reorder(location_name, avg_per_hour))) +
       geom_col()
+  })
+
+  output$hour_plot <- renderPlot({
+    top3 <- ranked() |> head(3)
+    
+    hourly_profile(foot_traffic, sensors, top3$location_id,
+                   days = input$days) |>
+      # Keep the legend in rank order, not alphabetical
+      dplyr::mutate(location_name = factor(location_name,
+                                           levels = top3$location_name)) |>
+      ggplot(aes(x = hour, y = avg_per_hour, colour = location_name)) +
+      annotate("rect",
+               xmin = input$hours[1], xmax = input$hours[2],
+               ymin = -Inf, ymax = Inf, alpha = 0.2) +
+      geom_line(linewidth = 1)
   })
 }
 
