@@ -1,0 +1,73 @@
+/* Butter yellow page, cream cards so text stays easy to read */
+body,
+.bslib-page-main {
+  background-color: #FFF2A7;
+}
+
+.card {
+  background-color: #FFFBEA;
+}
+
+/* Retro look: chunky wine borders with a hard, unblurred shadow */
+.card,
+.bslib-value-box {
+  border: 3px solid #930031;
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 #930031;
+}
+
+.card-header {
+  background-color: #BEDEFF;
+  border-bottom: 3px solid #930031;
+  font-family: "Shrikhand", cursive;
+  font-size: 1.2rem;
+}
+
+.bslib-page-title {
+  font-family: "Shrikhand", cursive;
+  font-size: 2rem;
+}
+
+/* Value boxes: small caps label, big bold value, both in DM Sans */
+.bslib-value-box .value-box-title {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bslib-value-box .value-box-value {
+  font-family: "DM Sans", sans-serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* Shortcut buttons: pill shape that presses down when clicked */
+.btn.btn-scout {
+  background-color: #FFA500;
+  color: #930031;
+  border: 2px solid #930031;
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 #930031;
+  font-weight: 700;
+  margin: 0 6px 6px 0;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+
+.btn.btn-scout:hover {
+  background-color: #FFB733;
+  color: #930031;
+}
+
+.btn.btn-scout:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 #930031;
+}
+
+/* Breathing room so each hard shadow has space before the next card */
+.bslib-page-main > .card,
+.bslib-page-main > .bslib-grid {
+  margin-bottom: 2rem;
+}
