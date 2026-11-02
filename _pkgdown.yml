@@ -1,0 +1,26 @@
+url: https://etc5523-2026.github.io/etc5523-assignment-4-anan0016-collab/
+
+template:
+  bootstrap: 5
+  bslib:
+    bg: "white"
+    fg: "#930031"
+    primary: "#930031"
+    base_font: {google: "DM Sans"}
+    heading_font: {google: "Fraunces"}
+
+reference:
+- title: Launch the app
+  contents:
+  - run_app
+- title: Find a location
+  desc: The functions behind Pop-Up Scout, which you can also call yourself.
+  contents:
+  - rank_locations
+  - hourly_profile
+- title: Data
+  desc: A year of foot traffic from the City of Melbourne's pedestrian sensors.
+  contents:
+  - foot_traffic
+  - sensors
+
