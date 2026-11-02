@@ -17,15 +17,20 @@ body,
 }
 
 .card-header {
-  background-color: #BEDEFF;
+  background-color: #C5EBC3;
   border-bottom: 3px solid #930031;
-  font-family: "Shrikhand", cursive;
-  font-size: 1.2rem;
+  font-family: "Fraunces", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.3rem;
 }
 
 .bslib-page-title {
   font-family: "Shrikhand", cursive;
-  font-size: 2rem;
+  font-weight: 400;
+  font-size: 2.4rem;
+  width: 100%;
+  text-align: center;
 }
 
 /* Value boxes: small caps label, big bold value, both in DM Sans */
@@ -42,6 +47,10 @@ body,
   font-size: 1.9rem;
   font-weight: 700;
   line-height: 1.1;
+}
+
+strong {
+  font-weight: 700;
 }
 
 /* Shortcut buttons: pill shape that presses down when clicked */
