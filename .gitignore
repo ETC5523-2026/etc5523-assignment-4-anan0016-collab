@@ -5,3 +5,4 @@
 scratch.R
 data-raw/*.csv
 .DS_Store
+inst/doc
