@@ -3,3 +3,5 @@
 ^LICENSE\.md$
 ^scratch\.R$
 ^data-raw$
+^README\.Rmd$
+[.]DS_Store$

@@ -4,3 +4,4 @@
 .Ruserdata
 scratch.R
 data-raw/*.csv
+.DS_Store
