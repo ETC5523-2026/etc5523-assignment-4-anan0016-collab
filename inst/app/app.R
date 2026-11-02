@@ -3,6 +3,14 @@ library(bslib)
 library(ggplot2)
 library(melbfoot)
 
+# Retro palette, shared by the theme and both plots
+scout <- c(
+  butter = "#FFF2A7",
+  wine   = "#930031",
+  orange = "#FFA500",
+  sky    = "#BEDEFF"
+)
+
 # Turn 10 into "10am", 18 into "6pm" and so on
 fmt_hour <- function(h) {
   if (h == 0 || h == 24) return("midnight")
@@ -10,10 +18,33 @@ fmt_hour <- function(h) {
   if (h < 12) paste0(h, "am") else paste0(h - 12, "pm")
 }
 
+# One reusable plot theme so both charts match
+theme_scout <- function() {
+  theme_minimal(base_size = 15) +
+    theme(
+      text = element_text(colour = scout[["wine"]]),
+      axis.text = element_text(colour = scout[["wine"]]),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = element_line(colour = scout[["sky"]]),
+      legend.position = "bottom"
+    )
+}
+
 ui <- page_sidebar(
   title = "Pop-Up Scout",
   fillable = FALSE,
+  theme = bs_theme(
+    bg = scout[["butter"]],
+    fg = scout[["wine"]],
+    primary = scout[["wine"]],
+    base_font = font_google("DM Sans"),
+    heading_font = font_google("Shrikhand")
+  ),
+  tags$head(tags$link(rel = "stylesheet", href = "styles.css")),
+  
   sidebar = sidebar(
+    bg = scout[["sky"]],
     checkboxGroupInput(
       "days", "When are you open?",
       choices = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
@@ -32,8 +63,8 @@ ui <- page_sidebar(
       choices = month.abb, selected = month.abb, inline = TRUE
     ),
     div(
-      actionButton("xmas", "🎄 Christmas only"),
-      actionButton("all_year", "All year")
+      actionButton("xmas", "🎄 Christmas only", class = "btn-scout"),
+      actionButton("all_year", "All year", class = "btn-scout")
     ),
     helpText("Untick any months you won't trade, or use a shortcut."),
     
@@ -64,17 +95,20 @@ ui <- page_sidebar(
     value_box(
       title = "Your best bet",
       value = textOutput("top_spot"),
-      showcase = icon("location-dot")
+      showcase = icon("location-dot"),
+      theme = value_box_theme(bg = scout[["orange"]], fg = scout[["wine"]])
     ),
     value_box(
       title = "People walking past per hour",
       value = textOutput("top_count"),
-      showcase = icon("person-walking")
+      showcase = icon("person-walking"),
+      theme = value_box_theme(bg = scout[["sky"]], fg = scout[["wine"]])
     ),
     value_box(
       title = "Lead over 2nd place",
       value = textOutput("lead"),
-      showcase = icon("fire")
+      showcase = icon("fire"),
+      theme = value_box_theme(bg = scout[["sky"]], fg = scout[["wine"]])
     )
   ),
   
@@ -83,8 +117,8 @@ ui <- page_sidebar(
     textOutput("finding"),
     p(
       "Each bar is one street location. A longer bar means more people walk",
-      "past each hour while you're open. If two bars are close, the spots are",
-      "basically tied, so let rent and vibe decide."
+      "past each hour while you're open. Your top pick is orange. If two bars",
+      "are close, the spots are basically tied, so let rent and vibe decide."
     ),
     plotOutput("rank_plot", height = "400px"),
     textOutput("data_note")
@@ -93,7 +127,7 @@ ui <- page_sidebar(
   card(
     card_header("When does it get busy?"),
     p(
-      "Each line is one of your top 3 spots. The shaded band is your opening",
+      "Each line is one of your top 3 spots. The blue band is your opening",
       "hours. You want the line to peak inside it. A peak outside the band",
       "means the crowds come when you're closed."
     ),
@@ -178,7 +212,7 @@ server <- function(input, output, session) {
     flagged <- top10$location_name[top10$limited_data]
     if (length(flagged) == 0) return("")
     paste0(
-      "Pale bars come from sensors that missed a lot of days (",
+      "Hollow bars come from sensors that missed a lot of days (",
       paste(flagged, collapse = ", "),
       "), so their averages are less reliable."
     )
@@ -188,13 +222,25 @@ server <- function(input, output, session) {
     req(ready())
     ranked() |>
       head(10) |>
+      dplyr::mutate(status = dplyr::case_when(
+        limited_data ~ "Limited data",
+        rank == 1    ~ "Top pick",
+        TRUE         ~ "Contender"
+      )) |>
       ggplot(aes(x = avg_per_hour,
                  y = reorder(location_name, avg_per_hour),
-                 fill = limited_data)) +
-      geom_col() +
-      scale_fill_manual(values = c("FALSE" = "grey30", "TRUE" = "grey75"),
-                        guide = "none")
-  })
+                 fill = status)) +
+      geom_col(colour = scout[["wine"]], linewidth = 0.8, width = 0.7) +
+      scale_fill_manual(
+        values = c("Top pick"     = scout[["orange"]],
+                   "Contender"    = scout[["sky"]],
+                   "Limited data" = scout[["butter"]]),
+        guide = "none"
+      ) +
+      scale_x_continuous(labels = function(x) format(x, big.mark = ",")) +
+      labs(x = "People walking past per hour while you're open", y = NULL) +
+      theme_scout()
+  }, bg = "transparent")
   
   output$hour_plot <- renderPlot({
     top3 <- ranked() |> head(3)
@@ -204,12 +250,27 @@ server <- function(input, output, session) {
       # Keep the legend in rank order, not alphabetical
       dplyr::mutate(location_name = factor(location_name,
                                            levels = top3$location_name)) |>
-      ggplot(aes(x = hour, y = avg_per_hour, colour = location_name)) +
+      ggplot(aes(x = hour, y = avg_per_hour, linetype = location_name)) +
       annotate("rect",
                xmin = input$hours[1], xmax = input$hours[2],
-               ymin = -Inf, ymax = Inf, alpha = 0.2) +
-      geom_line(linewidth = 1)
-  })
+               ymin = -Inf, ymax = Inf,
+               fill = scout[["sky"]], alpha = 0.7) +
+      geom_line(colour = scout[["wine"]], linewidth = 1.3) +
+      scale_linetype_manual(values = c("solid", "42", "11")) +
+      scale_x_continuous(
+        breaks = c(0, 6, 12, 18, 24),
+        labels = c("midnight", "6am", "noon", "6pm", "midnight"),
+        limits = c(0, 24)
+      ) +
+      scale_y_continuous(labels = function(x) format(x, big.mark = ",")) +
+      labs(x = NULL, y = "People per hour", linetype = NULL) +
+      theme_scout() +
+      theme(
+        panel.grid.major.y = element_line(colour = scout[["sky"]]),
+        panel.grid.major.x = element_blank(),
+        legend.key.width = unit(2.5, "lines")
+      )
+  }, bg = "transparent")
 }
 
 shinyApp(ui, server)
