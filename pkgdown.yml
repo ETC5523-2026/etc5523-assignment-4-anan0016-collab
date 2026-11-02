@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  pop-up-scout: pop-up-scout.html
+last_built: 2026-11-02T10:46Z
+urls:
+  reference: https://etc5523-2026.github.io/etc5523-assignment-4-anan0016-collab/reference
+  article: https://etc5523-2026.github.io/etc5523-assignment-4-anan0016-collab/articles
