@@ -2,6 +2,8 @@
 
 export(hourly_profile)
 export(rank_locations)
+export(run_app)
+importFrom(bslib,bs_theme)
 importFrom(dplyr,
   arrange,
   desc,
@@ -13,4 +15,5 @@ importFrom(dplyr,
   select,
   summarise
 )
+importFrom(ggplot2,ggplot)
 importFrom(utils,globalVariables)
