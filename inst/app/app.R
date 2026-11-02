@@ -3,19 +3,63 @@ library(bslib)
 library(ggplot2)
 library(melbfoot)
 
+# Turn 10 into "10am", 18 into "6pm" and so on
+fmt_hour <- function(h) {
+  if (h == 0 || h == 24) return("midnight")
+  if (h == 12) return("noon")
+  if (h < 12) paste0(h, "am") else paste0(h - 12, "pm")
+}
+
 ui <- page_sidebar(
   title = "Pop-Up Scout",
+  fillable = FALSE,
   sidebar = sidebar(
     checkboxGroupInput(
       "days", "When are you open?",
       choices = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
       selected = c("Sat", "Sun")
     ),
+    helpText("Tick every day your shop will trade. Counts are averaged across these days."),
+    
     sliderInput(
       "hours", "Opening hours",
       min = 0, max = 24, value = c(10, 18), step = 1
+    ),
+    helpText("Drag both ends to your opening and closing time. 10 to 18 means 10am to 6pm."),
+    
+    checkboxGroupInput(
+      "months", "Which months?",
+      choices = month.abb, selected = month.abb, inline = TRUE
+    ),
+    div(
+      actionButton("xmas", "🎄 Christmas only"),
+      actionButton("all_year", "All year")
+    ),
+    helpText("Untick any months you won't trade, or use a shortcut."),
+    
+    hr(),
+    helpText(
+      "Data: City of Melbourne Pedestrian Counting System, Oct 2025 to Sep 2026,",
+      "100 outdoor street sensors. Counts are people walking past, not shoppers."
     )
   ),
+  
+  card(
+    card_header("Thinking of opening a pop-up in the CBD?"),
+    p(
+      "Pop-Up Scout is for anyone planning a short-term clothing pop-up in",
+      "Melbourne's CBD. It answers one question:",
+      strong("which street-front spot gets the most people walking past during",
+             "the hours you'd actually be open?")
+    ),
+    tags$ol(
+      tags$li("Tick the days you'll trade."),
+      tags$li("Set your opening hours."),
+      tags$li("Pick the months you'll be open."),
+      tags$li("Read your best bet below. Everything updates straight away.")
+    )
+  ),
+  
   layout_columns(
     value_box(
       title = "Your best bet",
@@ -33,35 +77,75 @@ ui <- page_sidebar(
       showcase = icon("fire")
     )
   ),
+  
   card(
     card_header("Top 10 spots for your trading hours"),
     textOutput("finding"),
-    plotOutput("rank_plot")
+    p(
+      "Each bar is one street location. A longer bar means more people walk",
+      "past each hour while you're open. If two bars are close, the spots are",
+      "basically tied, so let rent and vibe decide."
+    ),
+    plotOutput("rank_plot", height = "400px"),
+    textOutput("data_note")
   ),
+  
   card(
     card_header("When does it get busy?"),
-    p("The shaded band is your opening hours. You want the line to peak inside it."),
-    plotOutput("hour_plot")
+    p(
+      "Each line is one of your top 3 spots. The shaded band is your opening",
+      "hours. You want the line to peak inside it. A peak outside the band",
+      "means the crowds come when you're closed."
+    ),
+    plotOutput("hour_plot", height = "350px")
   )
 )
 
 server <- function(input, output, session) {
   
+  # TRUE when the inputs make sense, used to keep the value boxes quiet
+  ready <- reactive({
+    length(input$days) > 0 &&
+      length(input$months) > 0 &&
+      input$hours[1] < input$hours[2]
+  })
+  
+  # Shortcut buttons: tick a preset set of months
+  observeEvent(input$xmas, {
+    updateCheckboxGroupInput(session, "months", selected = c("Nov", "Dec"))
+  })
+  
+  observeEvent(input$all_year, {
+    updateCheckboxGroupInput(session, "months", selected = month.abb)
+  })
+  
   # The one shared calculation: every output below reads from this
   ranked <- reactive({
+    validate(
+      need(length(input$days) > 0,
+           "Tick at least one day you'll be open and your rankings will appear."),
+      need(length(input$months) > 0,
+           "Pick at least one month to trade in."),
+      need(input$hours[1] < input$hours[2],
+           "Your opening and closing times are the same. Drag the slider so you're open for at least an hour.")
+    )
     rank_locations(foot_traffic, sensors,
-                   days = input$days, hours = input$hours)
+                   days = input$days, hours = input$hours,
+                   months = input$months)
   }, label = "ranked")
   
   output$top_spot <- renderText({
+    req(ready())
     ranked()$location_name[1]
   })
   
   output$top_count <- renderText({
+    req(ready())
     format(ranked()$avg_per_hour[1], big.mark = ",")
   })
   
   output$lead <- renderText({
+    req(ready())
     top <- ranked()
     lead <- (top$avg_per_hour[1] / top$avg_per_hour[2] - 1) * 100
     paste0(round(lead), "% busier")
@@ -69,28 +153,54 @@ server <- function(input, output, session) {
   
   output$finding <- renderText({
     top <- ranked()
-    paste0(
+    msg <- paste0(
       "Open ", paste(input$days, collapse = ", "),
-      " from ", input$hours[1], ":00 to ", input$hours[2], ":00? ",
+      " from ", fmt_hour(input$hours[1]), " to ", fmt_hour(input$hours[2]), "? ",
       top$location_name[1], " is your spot, with about ",
       format(top$avg_per_hour[1], big.mark = ","),
       " people walking past every hour."
     )
+    if (top$avg_per_hour[1] < 150) {
+      msg <- paste(msg, "Heads up: even the busiest spot is pretty quiet at",
+                   "these times, so a pop-up might struggle.")
+    }
+    if (top$limited_data[1]) {
+      msg <- paste(msg, "Careful though: this sensor only reported on",
+                   top$days_observed[1], "of 365 days, so its average is",
+                   "shakier than the rest.")
+    }
+    msg
+  })
+  
+  output$data_note <- renderText({
+    req(ready())
+    top10 <- head(ranked(), 10)
+    flagged <- top10$location_name[top10$limited_data]
+    if (length(flagged) == 0) return("")
+    paste0(
+      "Pale bars come from sensors that missed a lot of days (",
+      paste(flagged, collapse = ", "),
+      "), so their averages are less reliable."
+    )
   })
   
   output$rank_plot <- renderPlot({
+    req(ready())
     ranked() |>
       head(10) |>
       ggplot(aes(x = avg_per_hour,
-                 y = reorder(location_name, avg_per_hour))) +
-      geom_col()
+                 y = reorder(location_name, avg_per_hour),
+                 fill = limited_data)) +
+      geom_col() +
+      scale_fill_manual(values = c("FALSE" = "grey30", "TRUE" = "grey75"),
+                        guide = "none")
   })
-
+  
   output$hour_plot <- renderPlot({
     top3 <- ranked() |> head(3)
     
     hourly_profile(foot_traffic, sensors, top3$location_id,
-                   days = input$days) |>
+                   days = input$days, months = input$months) |>
       # Keep the legend in rank order, not alphabetical
       dplyr::mutate(location_name = factor(location_name,
                                            levels = top3$location_name)) |>
