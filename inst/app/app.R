@@ -8,7 +8,8 @@ scout <- c(
   butter = "#FFF2A7",
   wine   = "#930031",
   orange = "#FFA500",
-  sky    = "#BEDEFF"
+  sky    = "#BEDEFF",
+  mint   = "#C5EBC3"
 )
 
 # Turn 10 into "10am", 18 into "6pm" and so on
@@ -41,8 +42,14 @@ ui <- page_sidebar(
     base_font = font_google("DM Sans"),
     heading_font = font_google("Shrikhand")
   ),
-  tags$head(tags$link(rel = "stylesheet", href = "styles.css")),
-  
+  tags$head(
+    tags$link(
+      rel = "stylesheet",
+      href = "https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,600&display=swap"
+    ),
+    tags$link(rel = "stylesheet", href = "styles.css")
+  ),
+
   sidebar = sidebar(
     bg = scout[["sky"]],
     checkboxGroupInput(
@@ -51,13 +58,13 @@ ui <- page_sidebar(
       selected = c("Sat", "Sun")
     ),
     helpText("Tick every day your shop will trade. Counts are averaged across these days."),
-    
+
     sliderInput(
       "hours", "Opening hours",
       min = 0, max = 24, value = c(10, 18), step = 1
     ),
     helpText("Drag both ends to your opening and closing time. 10 to 18 means 10am to 6pm."),
-    
+
     checkboxGroupInput(
       "months", "Which months?",
       choices = month.abb, selected = month.abb, inline = TRUE
@@ -67,14 +74,14 @@ ui <- page_sidebar(
       actionButton("all_year", "All year", class = "btn-scout")
     ),
     helpText("Untick any months you won't trade, or use a shortcut."),
-    
+
     hr(),
     helpText(
       "Data: City of Melbourne Pedestrian Counting System, Oct 2025 to Sep 2026,",
       "100 outdoor street sensors. Counts are people walking past, not shoppers."
     )
   ),
-  
+
   card(
     card_header("Thinking of opening a pop-up in the CBD?"),
     p(
@@ -90,7 +97,7 @@ ui <- page_sidebar(
       tags$li("Read your best bet below. Everything updates straight away.")
     )
   ),
-  
+
   layout_columns(
     gap = "1.5rem",
     value_box(
@@ -112,7 +119,7 @@ ui <- page_sidebar(
       theme = value_box_theme(bg = scout[["sky"]], fg = scout[["wine"]])
     )
   ),
-  
+
   card(
     card_header("Top 10 spots for your trading hours"),
     textOutput("finding"),
@@ -124,7 +131,7 @@ ui <- page_sidebar(
     plotOutput("rank_plot", height = "400px"),
     textOutput("data_note")
   ),
-  
+
   card(
     card_header("When does it get busy?"),
     p(
@@ -137,23 +144,23 @@ ui <- page_sidebar(
 )
 
 server <- function(input, output, session) {
-  
+
   # TRUE when the inputs make sense, used to keep the value boxes quiet
   ready <- reactive({
     length(input$days) > 0 &&
       length(input$months) > 0 &&
       input$hours[1] < input$hours[2]
   })
-  
+
   # Shortcut buttons: tick a preset set of months
   observeEvent(input$xmas, {
     updateCheckboxGroupInput(session, "months", selected = c("Nov", "Dec"))
   })
-  
+
   observeEvent(input$all_year, {
     updateCheckboxGroupInput(session, "months", selected = month.abb)
   })
-  
+
   # The one shared calculation: every output below reads from this
   ranked <- reactive({
     validate(
@@ -168,24 +175,24 @@ server <- function(input, output, session) {
                    days = input$days, hours = input$hours,
                    months = input$months)
   }, label = "ranked")
-  
+
   output$top_spot <- renderText({
     req(ready())
     ranked()$location_name[1]
   })
-  
+
   output$top_count <- renderText({
     req(ready())
     format(ranked()$avg_per_hour[1], big.mark = ",")
   })
-  
+
   output$lead <- renderText({
     req(ready())
     top <- ranked()
     lead <- (top$avg_per_hour[1] / top$avg_per_hour[2] - 1) * 100
     paste0(round(lead), "% busier")
   })
-  
+
   output$finding <- renderText({
     top <- ranked()
     msg <- paste0(
@@ -206,7 +213,7 @@ server <- function(input, output, session) {
     }
     msg
   })
-  
+
   output$data_note <- renderText({
     req(ready())
     top10 <- head(ranked(), 10)
@@ -218,7 +225,7 @@ server <- function(input, output, session) {
       "), so their averages are less reliable."
     )
   })
-  
+
   output$rank_plot <- renderPlot({
     req(ready())
     ranked() |>
@@ -242,10 +249,10 @@ server <- function(input, output, session) {
       labs(x = "People walking past per hour while you're open", y = NULL) +
       theme_scout()
   }, bg = "transparent")
-  
+
   output$hour_plot <- renderPlot({
     top3 <- ranked() |> head(3)
-    
+
     hourly_profile(foot_traffic, sensors, top3$location_id,
                    days = input$days, months = input$months) |>
       # Keep the legend in rank order, not alphabetical
