@@ -92,6 +92,7 @@ ui <- page_sidebar(
   ),
   
   layout_columns(
+    gap = "1.5rem",
     value_box(
       title = "Your best bet",
       value = textOutput("top_spot"),
